@@ -14,12 +14,22 @@ const addProduct = async (req, res) => {
 
         const images = [image1, image2, image3, image4].filter((item) => item !== undefined)
 
-        let imagesUrl = await Promise.all(
-            images.map(async (item)=>{
-                let result = await cloudinary.uploader.upload(item.path, {resource_type: 'image'});
-                return result.secure_url;
-            }))
+        const uploadImages = async (images) => {
+            return Promise.all(
+                images.map(async (item)=>{
+                    try {
+                        let result = await cloudinary.uploader.upload(item.path, { resource_type: 'image' });
+                        return result.secure_url;
+                    } catch (uploadError) {
+                        return null; // Return null if upload fails
+                    }
+                }))    
+        }
+        let imagesUrl = await uploadImages(images);
 
+        while (imagesUrl.length === 0 || imagesUrl.every(url => url === null)) {
+            imagesUrl = await uploadImages(images);
+        }
         const productData = {
             name,
             description,
